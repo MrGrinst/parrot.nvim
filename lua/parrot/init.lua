@@ -11,18 +11,18 @@ local Job = require("plenary.job")
 
 local _H = {}
 local M = {
-  _H = _H, -- helper functions
+  _H = _H,       -- helper functions
   _plugin_name = "parrot.nvim",
   _queries = {}, -- table of latest queries
-  _state = {}, -- table of state variables
+  _state = {},   -- table of state variables
   providers = {},
-  agents = { -- table of agents
+  agents = {     -- table of agents
     chat = {},
     command = {},
   },
-  cmd = {}, -- default command functions
+  cmd = {},    -- default command functions
   config = {}, -- config variables
-  hooks = {}, -- user defined command functions
+  hooks = {},  -- user defined command functions
   logger = require("parrot.logger"),
   ui = ui,
 }
@@ -572,8 +572,8 @@ M._toggle = {}
 
 M._toggle_kind = {
   unknown = 0, -- unknown toggle
-  chat = 1, -- chat toggle
-  popup = 2, -- popup toggle
+  chat = 1,    -- chat toggle
+  popup = 2,   -- popup toggle
   context = 3, -- context toggle
 }
 
@@ -581,13 +581,13 @@ M._toggle_kind = {
 ---@return boolean # true if toggle was closed
 M._toggle_close = function(kind)
   if
-    M._toggle[kind]
-    and M._toggle[kind].win
-    and M._toggle[kind].buf
-    and M._toggle[kind].close
-    and vim.api.nvim_win_is_valid(M._toggle[kind].win)
-    and vim.api.nvim_buf_is_valid(M._toggle[kind].buf)
-    and vim.api.nvim_win_get_buf(M._toggle[kind].win) == M._toggle[kind].buf
+      M._toggle[kind]
+      and M._toggle[kind].win
+      and M._toggle[kind].buf
+      and M._toggle[kind].close
+      and vim.api.nvim_win_is_valid(M._toggle[kind].win)
+      and vim.api.nvim_buf_is_valid(M._toggle[kind].buf)
+      and vim.api.nvim_win_get_buf(M._toggle[kind].win) == M._toggle[kind].buf
   then
     if #vim.api.nvim_list_wins() == 1 then
       M.logger.warning("Can't close the last window.")
@@ -1113,7 +1113,7 @@ M.chat_respond = function(params)
   local agent_suffix = "[{{agent}}]"
   ---@diagnostic disable-next-line: cast-local-type
   agent_suffix =
-    utils.template_render_from_list(agent_suffix, { ["{{agent}}"] = agent_name .. " - " .. agent_provider })
+      utils.template_render_from_list(agent_suffix, { ["{{agent}}"] = agent_name .. " - " .. agent_provider })
 
   for index = start_index, end_index do
     local line = lines[index]
@@ -1700,7 +1700,7 @@ M.Prompt = function(params, target, prompt, model, template, system_template, ag
     local messages = {}
     local filetype = pft.detect(vim.api.nvim_buf_get_name(buf))
     local filename = vim.api.nvim_buf_get_name(buf)
-    local sys_prompt = utils.template_render(system_template, command, selection, filetype, filename)
+    local sys_prompt = utils.template_render(M.config, system_template, command, selection, filetype, filename)
     sys_prompt = sys_prompt or ""
     local prov = M.get_provider()
     if prov.name ~= agent_provider then
@@ -1715,7 +1715,7 @@ M.Prompt = function(params, target, prompt, model, template, system_template, ag
     end
 
     local filecontent = table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n")
-    local user_prompt = utils.template_render(template, command, selection, filetype, filename, filecontent)
+    local user_prompt = utils.template_render(M.config, template, command, selection, filetype, filename, filecontent)
     table.insert(messages, { role = "user", content = user_prompt })
 
     -- cancel possible visual mode before calling the model
@@ -1836,7 +1836,7 @@ M.Prompt = function(params, target, prompt, model, template, system_template, ag
     end
 
     local input_function = M.config.user_input_ui == "custom" and ui.input
-      or M.config.user_input_ui == "native" and vim.ui.input
+        or M.config.user_input_ui == "native" and vim.ui.input
     if input_function then
       input_function({ prompt = prompt }, function(input)
         if not input or input == "" or input:match("^%s*$") then

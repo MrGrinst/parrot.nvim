@@ -137,7 +137,7 @@ end
 ---@param str string # string to check
 ---@param ending string # string to check for
 M.ends_with = function(str, ending)
-  return ending == "" or str:sub(-#ending) == ending
+  return ending == "" or str:sub(- #ending) == ending
 end
 
 ---@param file_name string # name of the file for which to get buffer
@@ -198,11 +198,74 @@ M.template_render_from_list = function(template, key_value_pairs)
   for key, value in pairs(key_value_pairs) do
     template = M.template_replace(template, key, value)
   end
+  local output_file = io.open("/tmp/vim-testing.txt", "a")
+  if output_file then
+    output_file:write(template)
+    output_file:close()
+  else
+    M.error("Failed to open file /tmp/vim-testing.txt for appending")
+  end
 
   return template
 end
 
-M.template_render = function(template, command, selection, filetype, filename, filecontent)
+local function get_selected_buffers_content(config)
+  local has_fzf, fzf_lua = pcall(require, "fzf-lua")
+  if not has_fzf then
+    M.logger.error("fzf-lua is required for buffer selection")
+    return ""
+  end
+
+  local co = coroutine.running()
+  if not co then
+    error("This function must be called from within a coroutine")
+  end
+
+  local selected_buffers = {}
+
+  fzf_lua.buffers({
+    fzf_opts = vim.tbl_extend("force", config.fzf_lua_opts or {}, {
+      ["--multi"] = "", -- Enable multi-select
+    }),
+    actions = {
+      ["default"] = function(selected)
+        for _, item in ipairs(selected) do
+          local buf_id = tonumber(item:match("(%d+)"))
+          if buf_id then
+            table.insert(selected_buffers, buf_id)
+          end
+        end
+        coroutine.resume(co)
+      end
+    },
+    winopts = {
+      height = 0.5,
+      width = 0.5,
+      row = 0.35,
+      col = 0.5,
+    },
+  })
+
+  coroutine.yield()
+
+  local content = ""
+  for _, buf_id in ipairs(selected_buffers) do
+    local filename = vim.api.nvim_buf_get_name(buf_id)
+    local lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
+    local buf_content = table.concat(lines, "\n")
+    content = content .. "[" .. filename .. "]\n```\n" .. buf_content .. "\n```\n\n"
+  end
+
+  return content
+end
+
+local function get_selected_buffers_content_in_coroutine(config)
+  return coroutine.wrap(function()
+    return get_selected_buffers_content(config)
+  end)()
+end
+
+M.template_render = function(config, template, command, selection, filetype, filename, filecontent)
   filecontent = filecontent or ""
   local key_value_pairs = {
     ["{{command}}"] = command,
@@ -211,6 +274,10 @@ M.template_render = function(template, command, selection, filetype, filename, f
     ["{{filename}}"] = filename,
     ["{{filecontent}}"] = filecontent,
   }
+  -- Check if {{askforbuffers}} is in the template
+  if template ~= nil and template:find("{{askforbuffers}}") then
+    key_value_pairs["{{askforbuffers}}"] = get_selected_buffers_content_in_coroutine(config)
+  end
   return M.template_render_from_list(template, key_value_pairs)
 end
 
