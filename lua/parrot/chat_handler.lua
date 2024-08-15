@@ -33,8 +33,8 @@ function ChatHandler:new(options, providers, available_providers, available_mode
     _toggle = {},
     _toggle_kind = {
       unknown = 0, -- unknown toggle
-      chat = 1, -- chat toggle
-      popup = 2, -- popup toggle
+      chat = 1,    -- chat toggle
+      popup = 2,   -- popup toggle
       context = 3, -- context toggle
     },
     available_providers = available_providers,
@@ -174,13 +174,13 @@ end
 ---@return boolean # true if toggle was closed
 function ChatHandler:toggle_close(kind)
   if
-    self._toggle[kind]
-    and self._toggle[kind].win
-    and self._toggle[kind].buf
-    and self._toggle[kind].close
-    and vim.api.nvim_win_is_valid(self._toggle[kind].win)
-    and vim.api.nvim_buf_is_valid(self._toggle[kind].buf)
-    and vim.api.nvim_win_get_buf(self._toggle[kind].win) == self._toggle[kind].buf
+      self._toggle[kind]
+      and self._toggle[kind].win
+      and self._toggle[kind].buf
+      and self._toggle[kind].close
+      and vim.api.nvim_win_is_valid(self._toggle[kind].win)
+      and vim.api.nvim_buf_is_valid(self._toggle[kind].buf)
+      and vim.api.nvim_win_get_buf(self._toggle[kind].win) == self._toggle[kind].buf
   then
     if #vim.api.nvim_list_wins() == 1 then
       logger.warning("Can't close the last window.")
@@ -1184,9 +1184,9 @@ function ChatHandler:prompt(params, target, model_obj, prompt, template)
     end
 
     local filecontent = table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n")
-    local multifilecontent = utils.get_all_buffer_content()
-    local user_prompt =
-      utils.template_render(template, command, selection, filetype, filename, filecontent, multifilecontent)
+    local multifilecontent = template:find("{{multifilecontent}}") and utils.get_all_buffer_content() or ""
+    local user_prompt = utils.template_render(template, command, selection, filetype, filename, filecontent,
+      multifilecontent)
     table.insert(messages, { role = "user", content = user_prompt })
 
     -- cancel possible visual mode before calling the model
@@ -1316,7 +1316,7 @@ function ChatHandler:prompt(params, target, model_obj, prompt, template)
     end
 
     local input_function = self.options.user_input_ui == "buffer" and ui.input
-      or self.options.user_input_ui == "native" and vim.ui.input
+        or self.options.user_input_ui == "native" and vim.ui.input
     if input_function then
       input_function({ prompt = prompt }, function(input)
         if not input or input == "" or input:match("^%s*$") then

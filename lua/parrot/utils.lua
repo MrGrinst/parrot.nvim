@@ -136,7 +136,7 @@ end
 ---@param ending string # string to check for
 ---@return boolean
 M.ends_with = function(str, ending)
-  return ending == "" or str:sub(-#ending) == ending
+  return ending == "" or str:sub(- #ending) == ending
 end
 
 -- Get the buffer number for a file with a given name.
@@ -293,11 +293,24 @@ M.get_all_buffer_content = function()
   for _, buf in ipairs(buffers) do
     if vim.api.nvim_buf_is_loaded(buf) then
       local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-      table.insert(content, table.concat(lines, "\n"))
+      local buffer_content = table.concat(lines, "\n")
+      if #buffer_content <= 40000 then
+        table.insert(content, buffer_content)
+      else
+        vim.notify("Ignoring buffer: " .. vim.api.nvim_buf_get_name(buf) .. " (too large)", vim.log.levels.WARN)
+      end
     end
   end
 
-  return table.concat(content, "\n\n")
+  local content_str = table.concat(content, "\n\n")
+  local tokenization_str = content_str:gsub("[ \t]+", " ")
+  local token_estimate = #tokenization_str * 0.3
+
+  if token_estimate > 5000 then
+    error("Using more than 5000 tokens.")
+  end
+
+  return content_str
 end
 
 -- Append selected text to a target buffer.
@@ -313,9 +326,9 @@ M.append_selection = function(params, origin_buf, target_buf, template_selection
     local filetype = pft.detect(vim.api.nvim_buf_get_name(origin_buf), {})
     local fname = vim.api.nvim_buf_get_name(origin_buf)
     local filecontent = table.concat(vim.api.nvim_buf_get_lines(origin_buf, 0, -1, false), "\n")
-    local multifilecontent = M.get_all_buffer_content()
+    local multifilecontent = template_selection:find("{{multifilecontent}}") and M.get_all_buffer_content() or ""
     local rendered =
-      M.template_render(template_selection, "", selection, filetype, fname, filecontent, multifilecontent)
+        M.template_render(template_selection, "", selection, filetype, fname, filecontent, multifilecontent)
     if rendered then
       selection = rendered
     end
