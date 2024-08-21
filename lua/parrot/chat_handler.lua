@@ -1324,8 +1324,9 @@ function ChatHandler:prompt(params, target, model_obj, prompt, template)
       return
     end
 
-    local input_function = self.options.user_input_ui == "buffer" and ui.input
-        or self.options.user_input_ui == "native" and vim.ui.input
+    local user_input_ui = params.user_input_ui or self.options.user_input_ui
+    local input_function = user_input_ui == "buffer" and ui.input
+        or user_input_ui == "native" and vim.ui.input
     if input_function then
       input_function({ prompt = prompt }, function(input)
         if not input or input == "" or input:match("^%s*$") then
@@ -1334,7 +1335,7 @@ function ChatHandler:prompt(params, target, model_obj, prompt, template)
         callback(input)
       end)
     else
-      logger.error("Invalid user input ui option: " .. self.options.user_input_ui)
+      logger.error("Invalid user input ui option: " .. user_input_ui)
     end
   end)
 end
